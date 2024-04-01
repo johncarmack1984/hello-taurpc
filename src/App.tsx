@@ -1,24 +1,21 @@
 import reactLogo from "./assets/react.svg";
 import "./App.css";
-import { createTauRPCProxy } from "../bindings.ts";
-import { useEffect, useState } from "react";
+
+import useTauRPC from "./useTauRPC";
 
 function App() {
-  const [taurpc, setTaurpc] = useState<Awaited<
-    ReturnType<typeof createTauRPCProxy>
-  > | null>(null);
-
-  useEffect(() => {
-    const init = async () => {
-      const taurpc = await createTauRPCProxy();
-      setTaurpc(taurpc);
-    };
-    init();
-  }, []);
+  const taurpc = useTauRPC();
 
   async function hello_world() {
     await taurpc?.hello_world();
   }
+
+  // Listen for `event` on the `events` layer
+  const unlisten = taurpc?.events.event.on(() => {
+    console.log("Hello World!");
+  });
+
+  unlisten?.();
 
   return (
     <div className="container">

@@ -2,7 +2,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![allow(non_snake_case)]
 
-#[taurpc::procedures(export_to = "../src/types.ts")]
+use taurpc::Router;
+
+#[taurpc::procedures]
 trait Api {
     async fn hello_world();
 }
@@ -17,11 +19,27 @@ impl Api for ApiImpl {
     }
 }
 
+// Nested procedures, you can also do this (path = "api.events.users")
+#[taurpc::procedures(path = "events")]
+trait Events {
+    #[taurpc(event)]
+    async fn event();
+}
+
+#[derive(Clone)]
+struct EventsImpl;
+
+#[taurpc::resolvers]
+impl Events for EventsImpl {}
+
 #[tokio::main]
 async fn main() {
+    let router = Router::new()
+        .merge(ApiImpl.into_handler())
+        .merge(EventsImpl.into_handler());
+
     tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init())
-        .invoke_handler(taurpc::create_ipc_handler(ApiImpl.into_handler()))
+        .invoke_handler(router.into_handler())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
